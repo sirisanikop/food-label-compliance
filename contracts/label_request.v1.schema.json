@@ -1,0 +1,238 @@
+{
+  "$defs": {
+    "Basis": {
+      "enum": [
+        "per_100g",
+        "per_100ml"
+      ],
+      "title": "Basis",
+      "type": "string"
+    },
+    "Nutrition": {
+      "additionalProperties": false,
+      "properties": {
+        "basis": {
+          "$ref": "#/$defs/Basis"
+        },
+        "serving_size": {
+          "description": "g or ml, matching basis",
+          "exclusiveMinimum": 0,
+          "maximum": 1000,
+          "title": "Serving Size",
+          "type": "number"
+        },
+        "energy_kcal": {
+          "maximum": 900,
+          "minimum": 0,
+          "title": "Energy Kcal",
+          "type": "number"
+        },
+        "protein_g": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Protein G",
+          "type": "number"
+        },
+        "carbohydrate_g": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Carbohydrate G",
+          "type": "number"
+        },
+        "total_sugars_g": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Total Sugars G",
+          "type": "number"
+        },
+        "added_sugars_g": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Added Sugars G",
+          "type": "number"
+        },
+        "total_fat_g": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Total Fat G",
+          "type": "number"
+        },
+        "saturated_fat_g": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Saturated Fat G",
+          "type": "number"
+        },
+        "trans_fat_g": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Trans Fat G",
+          "type": "number"
+        },
+        "sodium_mg": {
+          "maximum": 40000,
+          "minimum": 0,
+          "title": "Sodium Mg",
+          "type": "number"
+        }
+      },
+      "required": [
+        "basis",
+        "serving_size",
+        "energy_kcal",
+        "protein_g",
+        "carbohydrate_g",
+        "total_sugars_g",
+        "added_sugars_g",
+        "total_fat_g",
+        "saturated_fat_g",
+        "trans_fat_g",
+        "sodium_mg"
+      ],
+      "title": "Nutrition",
+      "type": "object"
+    },
+    "QuantityUnit": {
+      "enum": [
+        "g",
+        "kg",
+        "ml",
+        "l"
+      ],
+      "title": "QuantityUnit",
+      "type": "string"
+    },
+    "VegMark": {
+      "enum": [
+        "veg",
+        "non_veg",
+        "none"
+      ],
+      "title": "VegMark",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "A proposed label and package specification (text only; no artwork).",
+  "properties": {
+    "schema_version": {
+      "const": "1.0",
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "product_name": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Product Name",
+      "type": "string"
+    },
+    "category_hint": {
+      "anyOf": [
+        {
+          "maxLength": 100,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Category Hint"
+    },
+    "ingredients_text": {
+      "maxLength": 5000,
+      "minLength": 1,
+      "title": "Ingredients Text",
+      "type": "string"
+    },
+    "allergen_statement": {
+      "anyOf": [
+        {
+          "maxLength": 1000,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Allergen Statement"
+    },
+    "veg_mark": {
+      "$ref": "#/$defs/VegMark"
+    },
+    "net_quantity": {
+      "exclusiveMinimum": 0,
+      "maximum": 100000,
+      "title": "Net Quantity",
+      "type": "number"
+    },
+    "net_quantity_unit": {
+      "$ref": "#/$defs/QuantityUnit"
+    },
+    "principal_display_panel_cm2": {
+      "description": "Area of the principal display panel",
+      "exclusiveMinimum": 0,
+      "maximum": 10000,
+      "title": "Principal Display Panel Cm2",
+      "type": "number"
+    },
+    "fssai_license_number": {
+      "pattern": "^\\d{14}$",
+      "title": "Fssai License Number",
+      "type": "string"
+    },
+    "front_of_pack_text": {
+      "anyOf": [
+        {
+          "maxLength": 2000,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Front Of Pack Text"
+    },
+    "claims_declared": {
+      "items": {
+        "maxLength": 200,
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 20,
+      "title": "Claims Declared",
+      "type": "array"
+    },
+    "label_text": {
+      "anyOf": [
+        {
+          "maxLength": 20000,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Label Text"
+    },
+    "nutrition": {
+      "$ref": "#/$defs/Nutrition"
+    }
+  },
+  "required": [
+    "product_name",
+    "ingredients_text",
+    "veg_mark",
+    "net_quantity",
+    "net_quantity_unit",
+    "principal_display_panel_cm2",
+    "fssai_license_number",
+    "nutrition"
+  ],
+  "title": "LabelRequest",
+  "type": "object"
+}

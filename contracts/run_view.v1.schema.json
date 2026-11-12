@@ -1,0 +1,297 @@
+{
+  "$defs": {
+    "Citation": {
+      "properties": {
+        "passage_id": {
+          "title": "Passage Id",
+          "type": "string"
+        },
+        "quote": {
+          "description": "Verbatim text from the passage",
+          "maxLength": 600,
+          "title": "Quote",
+          "type": "string"
+        },
+        "doc_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Doc Id"
+        },
+        "clause_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Clause Ref"
+        }
+      },
+      "required": [
+        "passage_id",
+        "quote"
+      ],
+      "title": "Citation",
+      "type": "object"
+    },
+    "Finding": {
+      "properties": {
+        "requirement_id": {
+          "title": "Requirement Id",
+          "type": "string"
+        },
+        "claim": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Claim"
+        },
+        "summary": {
+          "default": "",
+          "title": "Summary",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "met",
+            "unmet",
+            "needs_review"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "explanation": {
+          "default": "",
+          "title": "Explanation",
+          "type": "string"
+        },
+        "citations": {
+          "items": {
+            "$ref": "#/$defs/Citation"
+          },
+          "title": "Citations",
+          "type": "array"
+        },
+        "values": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Values"
+        }
+      },
+      "required": [
+        "requirement_id",
+        "status"
+      ],
+      "title": "Finding",
+      "type": "object"
+    },
+    "Route": {
+      "enum": [
+        "clear-for-print",
+        "revise-and-recheck",
+        "regulatory-review"
+      ],
+      "title": "Route",
+      "type": "string"
+    },
+    "RunResult": {
+      "properties": {
+        "run_id": {
+          "title": "Run Id",
+          "type": "string"
+        },
+        "route": {
+          "$ref": "#/$defs/Route"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "findings": {
+          "items": {
+            "$ref": "#/$defs/Finding"
+          },
+          "title": "Findings",
+          "type": "array"
+        },
+        "escalated": {
+          "default": false,
+          "title": "Escalated",
+          "type": "boolean"
+        },
+        "escalation_path": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Escalation Path",
+          "type": "array"
+        },
+        "degraded": {
+          "default": false,
+          "title": "Degraded",
+          "type": "boolean"
+        },
+        "withheld_findings": {
+          "default": 0,
+          "title": "Withheld Findings",
+          "type": "integer"
+        },
+        "claims_detected": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Claims Detected",
+          "type": "array"
+        },
+        "prompt_versions": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Prompt Versions",
+          "type": "object"
+        },
+        "verification": {
+          "additionalProperties": true,
+          "title": "Verification",
+          "type": "object"
+        },
+        "usage": {
+          "additionalProperties": true,
+          "title": "Usage",
+          "type": "object"
+        },
+        "index_build_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Index Build Id"
+        },
+        "cache_hit": {
+          "default": false,
+          "title": "Cache Hit",
+          "type": "boolean"
+        },
+        "disclaimer": {
+          "default": "This is a compliance finding with supporting evidence, not an approval. A regulatory affairs professional makes the print decision.",
+          "title": "Disclaimer",
+          "type": "string"
+        }
+      },
+      "required": [
+        "run_id",
+        "route",
+        "reason"
+      ],
+      "title": "RunResult",
+      "type": "object"
+    },
+    "RunStatus": {
+      "enum": [
+        "queued",
+        "running",
+        "completed",
+        "degraded",
+        "failed"
+      ],
+      "title": "RunStatus",
+      "type": "string"
+    }
+  },
+  "properties": {
+    "run_id": {
+      "title": "Run Id",
+      "type": "string"
+    },
+    "status": {
+      "$ref": "#/$defs/RunStatus"
+    },
+    "submitted_at": {
+      "title": "Submitted At",
+      "type": "number"
+    },
+    "started_at": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Started At"
+    },
+    "finished_at": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Finished At"
+    },
+    "result": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/RunResult"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "error": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Error"
+    }
+  },
+  "required": [
+    "run_id",
+    "status",
+    "submitted_at"
+  ],
+  "title": "RunView",
+  "type": "object"
+}

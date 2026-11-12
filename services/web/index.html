@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Food Label Compliance Check</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 980px; margin: 24px auto; padding: 0 16px; }
+  textarea { width: 100%; height: 300px; font-family: monospace; font-size: 12px; }
+  button { padding: 6px 14px; margin-right: 6px; cursor: pointer; }
+  .route { padding: 8px 12px; border-radius: 4px; font-weight: 600; display: inline-block; }
+  .clear-for-print { background: #d9f2dd; }
+  .revise-and-recheck { background: #fff0c2; }
+  .regulatory-review { background: #fbd5d5; }
+  .finding { border: 1px solid #ccc; border-radius: 4px; padding: 8px; margin: 8px 0; }
+  .cite { font-size: 12px; color: #444; margin-left: 12px; }
+  .status-met { color: #1a7f37; } .status-unmet { color: #b42318; } .status-needs_review { color: #a15c00; }
+  pre { background: #f6f6f6; padding: 8px; overflow: auto; }
+  small { color: #666; }
+</style>
+</head>
+<body>
+<h1>Food Label Compliance Check</h1>
+<p><small>Produces a compliance finding with citations. It never approves a label for print.</small></p>
+
+<label>Label and package specification (JSON)</label>
+<textarea id="payload"></textarea>
+<p>
+  <button id="send">Submit</button>
+  <button id="sample1">Sample: "source of protein"</button>
+  <button id="sample2">Sample: malformed</button>
+  <small id="state"></small>
+</p>
+
+<div id="out"></div>
+
+<script>
+const SAMPLES = {
+  sample1: {
+    schema_version: "1.0",
+    product_name: "Oat Crunch Cereal Bar",
+    category_hint: "Biscuits, cookies and cereal bars",
+    ingredients_text: "Oats, jaggery, almonds, whey protein concentrate, vegetable oil, salt",
+    allergen_statement: "Contains milk and tree nuts",
+    veg_mark: "veg",
+    net_quantity: 150, net_quantity_unit: "g",
+    principal_display_panel_cm2: 120,
+    fssai_license_number: "10020042001234",
+    front_of_pack_text: "Source of protein. Crunchy and wholesome.",
+    claims_declared: ["source of protein"],
+    label_text: "Store in a cool, dry place. Best before 9 months from packing.",
+    nutrition: { basis: "per_100g", serving_size: 30, energy_kcal: 430, protein_g: 8.0,
+      carbohydrate_g: 58, total_sugars_g: 18, added_sugars_g: 14, total_fat_g: 16,
+      saturated_fat_g: 4, trans_fat_g: 0, sodium_mg: 210 }
+  },
+  sample2: { product_name: "", net_quantity: -5, net_quantity_unit: "g", fssai_license_number: "123" }
+};
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function load(k) { $("payload").value = JSON.stringify(SAMPLES[k], null, 2); }
+$("sample1").onclick = () => load("sample1");
+$("sample2").onclick = () => load("sample2");
+load("sample1");
+
+$("send").onclick = async () => {
+  $("out").innerHTML = ""; $("state").textContent = "submitting...";
+  let body;
+  try { body = JSON.parse($("payload").value); } catch (e) { $("state").textContent = "not valid JSON"; return; }
+  const r = await fetch("/api/v1/runs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  const j = await r.json();
+  if (r.status === 422) {
+    $("state").textContent = "rejected at ingestion boundary (no agent run started)";
+    $("out").innerHTML = "<h3>Rejected</h3><pre>" + esc(JSON.stringify(j, null, 2)) + "</pre>";
+    return;
+  }
+  if (!r.ok) { $("state").textContent = "error " + r.status; $("out").innerHTML = "<pre>" + esc(JSON.stringify(j, null, 2)) + "</pre>"; return; }
+  poll(j.run_id);
+};
+
+async function poll(runId) {
+  const started = Date.now();
+  for (;;) {
+    const r = await fetch("/api/v1/runs/" + runId);
+    const j = await r.json();
+    $("state").textContent = j.status + " (" + Math.round((Date.now() - started) / 1000) + "s)  run " + runId;
+    if (["completed", "degraded", "failed"].includes(j.status)) { render(j); return; }
+    await new Promise(res => setTimeout(res, 1000));
+  }
+}
+
+function render(run) {
+  const res = run.result;
+  if (!res) { $("out").innerHTML = "<p>Run " + esc(run.status) + ": " + esc(run.error || "no result") + "</p>"; return; }
+  let h = '<h3>Recommendation</h3><span class="route ' + esc(res.route) + '">' + esc(res.route) + "</span>";
+  h += "<p>" + esc(res.reason) + "</p>";
+  if (res.degraded) h += "<p><b>Degraded run</b> &mdash; produced by the fallback path, not a full check.</p>";
+  if (res.escalated) h += "<p><b>Escalation path:</b> " + res.escalation_path.map(esc).join(" &rarr; ") + "</p>";
+  h += "<h3>Findings</h3>";
+  for (const f of res.findings) {
+    h += '<div class="finding"><b>' + esc(f.requirement_id) + '</b> <span class="status-' + esc(f.status) + '">' + esc(f.status) + "</span><br>" + esc(f.explanation);
+    for (const c of f.citations) h += '<div class="cite">[' + esc(c.doc_id) + " " + esc(c.clause_ref) + "] &ldquo;" + esc(c.quote) + "&rdquo; <small>(" + esc(c.passage_id) + ")</small></div>";
+    h += "</div>";
+  }
+  if (!res.findings.length) h += "<p><small>No findings returned" + (res.withheld_findings ? " (" + res.withheld_findings + " unverified finding(s) withheld)" : "") + ".</small></p>";
+  h += "<p><small>Prompt versions: " + esc(JSON.stringify(res.prompt_versions)) + " &middot; cost: " + esc(JSON.stringify(res.usage)) + "</small></p>";
+  h += '<p><a href="/api/v1/runs/' + run.run_id + '/trace" target="_blank">View full trace</a></p>';
+  h += '<p>Was this useful? <button onclick="fb(\'' + run.run_id + '\', true)">Yes</button><button onclick="fb(\'' + run.run_id + '\', false)">No</button></p>';
+  $("out").innerHTML = h;
+}
+
+async function fb(runId, ok) {
+  let reason = null;
+  if (!ok) { reason = prompt("What was wrong?"); if (!reason) return; }
+  const r = await fetch("/api/v1/runs/" + runId + "/feedback", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ satisfactory: ok, reason }) });
+  $("state").textContent = r.ok ? "feedback recorded" : "feedback failed";
+}
+</script>
+</body>
+</html>

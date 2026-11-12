@@ -1,0 +1,180 @@
+{
+  "$defs": {
+    "Citation": {
+      "properties": {
+        "passage_id": {
+          "title": "Passage Id",
+          "type": "string"
+        },
+        "quote": {
+          "description": "Verbatim text from the passage",
+          "maxLength": 600,
+          "title": "Quote",
+          "type": "string"
+        },
+        "doc_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Doc Id"
+        },
+        "clause_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Clause Ref"
+        }
+      },
+      "required": [
+        "passage_id",
+        "quote"
+      ],
+      "title": "Citation",
+      "type": "object"
+    },
+    "Finding": {
+      "properties": {
+        "requirement_id": {
+          "title": "Requirement Id",
+          "type": "string"
+        },
+        "claim": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Claim"
+        },
+        "summary": {
+          "default": "",
+          "title": "Summary",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "met",
+            "unmet",
+            "needs_review"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "explanation": {
+          "default": "",
+          "title": "Explanation",
+          "type": "string"
+        },
+        "citations": {
+          "items": {
+            "$ref": "#/$defs/Citation"
+          },
+          "title": "Citations",
+          "type": "array"
+        },
+        "values": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Values"
+        }
+      },
+      "required": [
+        "requirement_id",
+        "status"
+      ],
+      "title": "Finding",
+      "type": "object"
+    },
+    "PassageRef": {
+      "properties": {
+        "passage_id": {
+          "title": "Passage Id",
+          "type": "string"
+        },
+        "doc_id": {
+          "title": "Doc Id",
+          "type": "string"
+        },
+        "doc_role": {
+          "title": "Doc Role",
+          "type": "string"
+        },
+        "clause_ref": {
+          "title": "Clause Ref",
+          "type": "string"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "passage_id",
+        "doc_id",
+        "doc_role",
+        "clause_ref",
+        "text"
+      ],
+      "title": "PassageRef",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "run_id": {
+      "title": "Run Id",
+      "type": "string"
+    },
+    "claims_detected": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Claims Detected",
+      "type": "array"
+    },
+    "findings": {
+      "items": {
+        "$ref": "#/$defs/Finding"
+      },
+      "title": "Findings",
+      "type": "array"
+    },
+    "retrieved": {
+      "items": {
+        "$ref": "#/$defs/PassageRef"
+      },
+      "title": "Retrieved",
+      "type": "array"
+    }
+  },
+  "required": [
+    "run_id",
+    "findings",
+    "retrieved"
+  ],
+  "title": "VerifyRequest",
+  "type": "object"
+}

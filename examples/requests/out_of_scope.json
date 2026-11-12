@@ -1,0 +1,26 @@
+{
+  "schema_version": "1.0",
+  "product_name": "Cold Pressed Orange Juice",
+  "category_hint": "Fruit juice",
+  "ingredients_text": "Orange juice",
+  "veg_mark": "veg",
+  "net_quantity": 200,
+  "net_quantity_unit": "ml",
+  "principal_display_panel_cm2": 90,
+  "fssai_license_number": "10020042001234",
+  "front_of_pack_text": "100% natural. Rich in vitamin C.",
+  "claims_declared": ["rich in vitamin c"],
+  "nutrition": {
+    "basis": "per_100ml",
+    "serving_size": 200,
+    "energy_kcal": 45,
+    "protein_g": 0.7,
+    "carbohydrate_g": 10,
+    "total_sugars_g": 9,
+    "added_sugars_g": 0,
+    "total_fat_g": 0.2,
+    "saturated_fat_g": 0,
+    "trans_fat_g": 0,
+    "sodium_mg": 2
+  }
+}

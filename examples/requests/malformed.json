@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.0",
+  "product_name": "Broken Bar",
+  "ingredients_text": "Oats",
+  "veg_mark": "veg",
+  "net_quantity": 150,
+  "net_quantity_unit": "g",
+  "principal_display_panel_cm2": 120,
+  "fssai_license_number": "123",
+  "nutrition": {
+    "basis": "per_100ml",
+    "serving_size": 30,
+    "energy_kcal": 430,
+    "protein_g": 8.0,
+    "carbohydrate_g": 10,
+    "total_sugars_g": 18,
+    "added_sugars_g": 14,
+    "total_fat_g": 16,
+    "saturated_fat_g": 4,
+    "trans_fat_g": 0,
+    "sodium_mg": 210
+  }
+}

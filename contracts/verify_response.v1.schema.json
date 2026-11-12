@@ -1,0 +1,76 @@
+{
+  "$defs": {
+    "VerifyIssue": {
+      "properties": {
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "finding_index": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Finding Index"
+        },
+        "detail": {
+          "default": "",
+          "title": "Detail",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code"
+      ],
+      "title": "VerifyIssue",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "ok": {
+      "title": "Ok",
+      "type": "boolean"
+    },
+    "issues": {
+      "items": {
+        "$ref": "#/$defs/VerifyIssue"
+      },
+      "title": "Issues",
+      "type": "array"
+    },
+    "suggested_strategy": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Suggested Strategy"
+    },
+    "checks_run": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Checks Run",
+      "type": "array"
+    },
+    "llm_judge": {
+      "default": "skipped",
+      "title": "Llm Judge",
+      "type": "string"
+    }
+  },
+  "required": [
+    "ok"
+  ],
+  "title": "VerifyResponse",
+  "type": "object"
+}

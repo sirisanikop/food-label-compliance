@@ -1,0 +1,28 @@
+{
+  "schema_version": "1.0",
+  "product_name": "Oat Crunch Cereal Bar (low protein variant)",
+  "category_hint": "Biscuits, cookies and cereal bars",
+  "ingredients_text": "Oats, jaggery, almonds, vegetable oil, salt",
+  "allergen_statement": "Contains tree nuts",
+  "veg_mark": "veg",
+  "net_quantity": 150,
+  "net_quantity_unit": "g",
+  "principal_display_panel_cm2": 120,
+  "fssai_license_number": "10020042001234",
+  "front_of_pack_text": "Source of protein. Crunchy and wholesome.",
+  "claims_declared": ["source of protein"],
+  "label_text": "Store in a cool, dry place. Best before 9 months from packing.",
+  "nutrition": {
+    "basis": "per_100g",
+    "serving_size": 30,
+    "energy_kcal": 430,
+    "protein_g": 2.5,
+    "carbohydrate_g": 62,
+    "total_sugars_g": 18,
+    "added_sugars_g": 14,
+    "total_fat_g": 16,
+    "saturated_fat_g": 4,
+    "trans_fat_g": 0,
+    "sodium_mg": 210
+  }
+}

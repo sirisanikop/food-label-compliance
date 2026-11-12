@@ -1,0 +1,45 @@
+{
+  "$defs": {
+    "RunStatus": {
+      "enum": [
+        "queued",
+        "running",
+        "completed",
+        "degraded",
+        "failed"
+      ],
+      "title": "RunStatus",
+      "type": "string"
+    }
+  },
+  "properties": {
+    "run_id": {
+      "title": "Run Id",
+      "type": "string"
+    },
+    "status": {
+      "$ref": "#/$defs/RunStatus"
+    },
+    "status_url": {
+      "title": "Status Url",
+      "type": "string"
+    },
+    "trace_url": {
+      "title": "Trace Url",
+      "type": "string"
+    },
+    "duplicate": {
+      "default": false,
+      "title": "Duplicate",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "run_id",
+    "status",
+    "status_url",
+    "trace_url"
+  ],
+  "title": "SubmitResponse",
+  "type": "object"
+}
