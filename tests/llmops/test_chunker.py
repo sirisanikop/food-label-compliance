@@ -54,3 +54,66 @@ def test_passage_id_binds_id_to_text():
 
 def test_chunking_is_deterministic_for_idempotent_ingestion():
     assert [c.passage_id for c in chunks(LABELLING)] == [c.passage_id for c in chunks(LABELLING)]
+
+
+# --- regressions found on the real FSSAI compendium PDFs -------------------------------------------
+
+COMPENDIUM = """Version-IV (14.12.2022)
+9. Conditional Claims.- (1) a claim may be made where a food is by its nature high or low.
+10. Prohibited claims.- (1) no claims shall be made which refer to suitability.
+11.Approval of claims. - The food business operator shall seek prior approval.
+12. Procedure for approval of claims. - (1) The operator shall submit an application.
+Version-IV (14.12.2022)
+The conditions are as given in
+Schedule II of these regulations.
+3[SCHEDULE – I
+[See regulation 5 (3) and regulation 7 (1)(b)]
+Nutrient Content Claim
+1.
+Energy Low Not more than 40 kcal per 100 g
+2. Fat Low Not more than 3 g of fat per 100 g
+Free Not more than 0.5 g of fat per 100 g
+11. Protein
+Source
+10 per cent. of Recommended Dietary Allowance per 100 g for solids
+Rich /
+High
+20 per cent. of Recommended Dietary Allowance per 100 g for solids
+12. Vitamin(s) or Mineral(s)
+Source 15 per cent. of Recommended Dietary Allowance
+"""
+
+
+def _compendium():
+    return chunker.chunk_document([COMPENDIUM], doc_id="CL", doc_role="claims", doc_title="Claims", max_chars=1400)
+
+
+def test_table_rows_are_not_mistaken_for_regulations():
+    regs = [c.clause_ref for c in _compendium() if c.clause_ref.startswith("Reg ")]
+    assert regs == ["Reg 9", "Reg 10", "Reg 11", "Reg 12"]  # no second "Reg 11"/"Reg 12" from the table
+
+
+def test_heading_with_no_space_after_the_dot_is_a_regulation():
+    assert "Reg 11" in [c.clause_ref for c in _compendium()]
+
+
+def test_sentence_that_starts_with_schedule_is_not_a_heading():
+    cs = _compendium()
+    assert [c.clause_ref for c in cs if c.clause_ref.startswith("Schedule")] == ["Schedule I"] * len(
+        [c for c in cs if c.clause_ref.startswith("Schedule")]
+    )
+    assert any("Schedule II of these regulations" in c.text for c in cs if c.clause_ref == "Reg 12")
+
+
+def test_schedule_rows_are_separate_passages_with_the_row_in_the_path():
+    protein = [c for c in _compendium() if "Row 11" in c.section_path]
+    assert len(protein) == 1
+    p = protein[0]
+    assert p.clause_ref == "Schedule I" and "Protein" in p.section_path
+    assert p.text.splitlines()[0].startswith("Schedule I [See regulation 5 (3)")
+    assert "10 per cent." in p.text and "20 per cent." in p.text
+    assert "Vitamin" not in p.text and "Fat" not in p.text
+
+
+def test_running_page_header_is_dropped():
+    assert not any("Version-IV" in c.text for c in _compendium())

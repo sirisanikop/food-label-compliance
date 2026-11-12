@@ -28,7 +28,7 @@ import yaml
 from foodlabel.common.config import get_settings
 from foodlabel.retrieval import chunker
 
-CHUNKER_VERSION = "1"
+CHUNKER_VERSION = "2"  # bumped: heading detection and schedule-row chunking rewritten for the real FSSAI PDFs
 log = logging.getLogger("foodlabel.ingest")
 
 
