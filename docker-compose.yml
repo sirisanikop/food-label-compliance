@@ -28,6 +28,7 @@ services:
     volumes:
       - ./data/corpus:/app/data/corpus:ro
       - index-data:/app/data/index
+      - hf-cache:/app/.cache/huggingface   # embedding model downloaded once, reused by every worker
     restart: "no"
 
   llm-stub:
@@ -60,7 +61,9 @@ services:
     build: { context: ., dockerfile: services/worker/Dockerfile }
     <<: *app-env
     environment: { SERVICE_NAME: worker }
-    volumes: [index-data:/app/data/index:ro]
+    volumes:
+      - index-data:/app/data/index:ro
+      - hf-cache:/app/.cache/huggingface
     depends_on:
       redis: { condition: service_healthy }
       indexer: { condition: service_completed_successfully }
@@ -144,5 +147,6 @@ services:
 volumes:
   redis-data:
   index-data:
+  hf-cache:
   quarantine-data:
   prometheus-data:

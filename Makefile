@@ -1,4 +1,4 @@
-.PHONY: up down scale3 logs test contracts ingest eval load clean
+.PHONY: up down scale3 logs test contracts ingest eval load clean smoke
 
 up:
 	docker compose up --build -d
@@ -8,6 +8,9 @@ down:
 
 scale3:
 	docker compose up --build -d --scale worker=3
+
+smoke:
+	scripts/smoke_test.sh
 
 logs:
 	docker compose logs -f --tail=100

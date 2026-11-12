@@ -9,7 +9,7 @@ RUN pip install --no-cache-dir -r /tmp/requirements.txt
 COPY src /app/src
 COPY prompts /app/prompts
 COPY eval /app/eval
-RUN useradd -m app && mkdir -p /app/data/index /app/.cache && chown -R app /app
+RUN useradd -m app && mkdir -p /app/data/index /app/.cache/huggingface && chown -R app /app
 USER app
 EXPOSE 9100
 CMD ["python", "-m", "foodlabel.worker.main"]

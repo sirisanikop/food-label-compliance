@@ -50,6 +50,10 @@ curl -s localhost:8000/v1/runs/<run_id>                    # poll until complete
 curl -s localhost:8000/v1/runs/<run_id>/trace              # full reconstruction of the run
 ```
 
+**Check the whole stack end to end:** `scripts/smoke_test.sh --fresh` (or `make smoke`). It builds from scratch,
+waits for every service, sends one real request through the agents, and checks Prometheus targets, the Grafana
+dashboard and the Jaeger traces. It prints PASS/FAIL for each check and saves a report in `reports/`. Add `--scale3` to also check three workers.
+
 Scale the agent workers: `docker compose up --build --scale worker=3`.
 Load test (uses the stub model): `docker compose --profile loadtest run --rm locust` (see `loadtest/README.md`).
 
