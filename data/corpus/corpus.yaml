@@ -1,0 +1,17 @@
+# Catalogue of the corpus documents. The indexer reads this file.
+# Put the downloaded PDFs (with a text layer) next to it and make `file` match the filenames.
+# Select ONE product category and keep to it: set CORPUS_CATEGORY in .env.example to match.
+documents:
+  - doc_id: FSSAI-LABELLING-2020
+    title: Food Safety and Standards (Labelling and Display) Regulations, 2020
+    role: labelling            # "labelling" | "claims" - the agent and verifier rely on these two roles
+    file: labelling_and_display_2020.pdf
+    version: "FILL IN: amendment/consolidation date of the copy you downloaded"
+    source_url: "FILL IN: FSSAI page you downloaded it from"
+
+  - doc_id: FSSAI-ADV-CLAIMS-2018
+    title: Food Safety and Standards (Advertising and Claims) Regulations, 2018
+    role: claims
+    file: advertising_and_claims_2018.pdf
+    version: "FILL IN: amendment/consolidation date of the copy you downloaded"
+    source_url: "FILL IN: FSSAI page you downloaded it from"

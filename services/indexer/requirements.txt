@@ -1,0 +1,11 @@
+pydantic>=2.7
+redis>=5.0
+pyyaml>=6.0
+numpy>=1.26
+pypdf>=4.2
+prometheus-client>=0.20
+langchain-core>=0.3
+langchain-community>=0.3
+langchain-huggingface>=0.1
+sentence-transformers>=3.0
+faiss-cpu>=1.8
