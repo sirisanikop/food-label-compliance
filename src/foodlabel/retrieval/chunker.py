@@ -40,7 +40,7 @@ REGULATION_RE = re.compile(r"^\s*(\d{1,3})\.\s*([A-Z\[“\"].{2,200})$")
 ROW_RE = re.compile(r"^(\d{1,2})\.(?:\s+(.*))?$")
 RUNNING_HEADER_RE = re.compile(r"^\s*Version\s*[-–—]\s*[IVXLC]+\s*\(\d{1,2}\.\d{1,2}\.\d{4}\)\s*$", re.I)
 MENTION_RE = re.compile(r"\b(?:regulations?|schedule|table|annexure)\s+[IVXLC0-9]+[A-Za-z]?(?:\(\d+\))?", re.I)
-_TITLE_CUT_RE = re.compile(r"(?:(?<=[\s.:])[-–—]|[-–—](?=\s*\())")
+_TITLE_CUT_RE = re.compile(r"(?:[.:]\s*[-–—]|(?<=\s)[-–—](?=[\s(]|$)|[-–—](?=\s*\())")
 _ROW_TITLE_CUT_RE = re.compile(r"\s{2,}|\s+(?:Low|Free|Source|High|Rich|Very low|Reduced|Increased|Not more|At least|Shall)\b")
 REGULATION_GAP = 3  # tolerate a few omitted/unparsed regulation numbers when checking the sequence
 
@@ -103,7 +103,7 @@ def _schedule_label(line: str, next_line: str) -> str | None:
 
 
 def _reg_title(rest: str) -> str:
-    title = _TITLE_CUT_RE.split(rest, maxsplit=1)[0].strip(" .:")
+    title = _TITLE_CUT_RE.split(rest, maxsplit=1)[0].strip(" .:-–—")
     return (title or rest.strip())[:90]
 
 
@@ -226,11 +226,18 @@ def chunk_blocks(
             if not text:
                 continue
             mentions = sorted({m.group(0).lower() for m in MENTION_RE.finditer(text)})
+            embed_text = f"{doc_title} | {b.section_path} | {b.clause_ref}\n{text}"
+            if b.kind == "schedule" and "> Row " in b.section_path:
+                # Table rows are embedded as "<row no>: <title>" + the row's own text. Repeating the long schedule
+                # heading (in the prefix and again in the text) made every row look alike to the embedding model
+                # and "Source of protein" ranked the dietary-fibre row first; measured with eval/retrieval_probe.py.
+                row_title = b.section_path.split("> Row ", 1)[1]
+                embed_text = f"{row_title}\n" + "\n".join(lines[1:])  # lines[0] is the repeated heading
             chunks.append(
                 Chunk(
                     doc_id=doc_id, doc_role=doc_role, clause_ref=b.clause_ref, section_path=b.section_path,
                     page=b.page, text=text,
-                    embed_text=f"{doc_title} | {b.section_path} | {b.clause_ref}\n{text}",
+                    embed_text=embed_text,
                     passage_id=ids.make_passage_id(doc_id, b.clause_ref, text),
                     mentions=mentions,
                 )

@@ -117,3 +117,21 @@ def test_schedule_rows_are_separate_passages_with_the_row_in_the_path():
 
 def test_running_page_header_is_dropped():
     assert not any("Version-IV" in c.text for c in _compendium())
+
+
+def test_regulation_title_keeps_a_hyphen_that_is_part_of_a_word():
+    text = "13. Redressal of non -compliance.- (1) Any person who advertises shall comply.\n14. Procedure for redressal.- (1) The claims shall be referred.\n15. Labelling Requirements. -In addition to the general rules.\n"
+    paths = [c.section_path for c in chunker.chunk_document([text], doc_id="D", doc_role="claims", doc_title="T")]
+    assert any(p.endswith("Reg 13. Redressal of non -compliance") for p in paths)
+    assert any(p.endswith("Reg 14. Procedure for redressal") for p in paths)
+    assert any(p.endswith("Reg 15. Labelling Requirements") for p in paths)
+
+
+def test_schedule_rows_are_embedded_without_the_repeated_heading():
+    row = next(c for c in _compendium() if "Row 11" in c.section_path)
+    assert row.embed_text.startswith("11: Protein\n")
+    assert "Schedule I [See regulation" not in row.embed_text and "Claims |" not in row.embed_text
+    assert "10 per cent." in row.embed_text
+    assert row.text.splitlines()[0].startswith("Schedule I [See regulation")  # the stored, cited text keeps its heading
+    reg = next(c for c in _compendium() if c.clause_ref == "Reg 11")
+    assert reg.embed_text.startswith("Claims | ")  # regulations keep the doc | path | clause prefix
