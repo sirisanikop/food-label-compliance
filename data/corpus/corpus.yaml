@@ -6,12 +6,12 @@ documents:
     title: Food Safety and Standards (Labelling and Display) Regulations, 2020
     role: labelling            # "labelling" | "claims" - the agent and verifier rely on these two roles
     file: labelling_and_display_2020.pdf
-    version: "Compendium Version-VI (22.02.2023); last amendment listed: 11 Oct 2022"
-    source_url: "https://mail.fssai.gov.in/upload/uploadfiles/files/Comp_Labelling.pdf"
+    version: "Compendium Version-II (29.12.2021); includes amendment notification dated 10 Sep 2021 and compliance-extension direction dated 22 Oct 2021"
+    source_url: "https://www.fssai.gov.in/upload/uploadfiles/files/Compendium_Labelling_Display_04_01_2022.pdf"
 
   - doc_id: FSSAI-ADV-CLAIMS-2018
     title: Food Safety and Standards (Advertising and Claims) Regulations, 2018
     role: claims
     file: advertising_and_claims_2018.pdf
     version: "Compendium Version-IV (14.12.2022); last amendment listed: 13 Dec 2022"
-    source_url: "https://mail.fssai.gov.in/upload/uploadfiles/files/Compendium_Advertising_Claims_Regulations_14_12_2022.pdf"
+    source_url: "https://www.fssai.gov.in/upload/uploadfiles/files/Compendium_Advertising_Claims_Regulations_14_12_2022.pdf"
