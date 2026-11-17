@@ -3,6 +3,7 @@
   search_corpus(query, doc?, k?)  - semantic search, optionally scoped to one regulation
   get_clause(clause_id)           - fetch a passage / clause by identifier
   get_request_field(path)         - read the request's own fields (e.g. nutrition.protein_g)
+  get_reference_value(nutrient)   - RDA for thresholds the regulation states as a percentage of RDA
   compute(op, a, b)               - exact comparison/arithmetic so the model never does maths
 
 Every call has a timeout (TOOL_TIMEOUT_S), is traced, and is metered.
@@ -27,6 +28,9 @@ TOOL_DESCRIPTIONS = """\
   Semantic search over the regulations. "doc" restricts the search to one regulation.
 - get_clause: args {"clause_id": str}. Fetch passages by passage id or clause reference.
 - get_request_field: args {"path": str}. Read a field of the label request, e.g. "nutrition.protein_g".
+- get_reference_value: args {"nutrient": str}. The Recommended Dietary Allowance (RDA) for a nutrient, with its
+  source. Use it when a regulation states a threshold as a percentage of the RDA. If it reports no value, the
+  claim cannot be decided: use status "needs_review".
 - compute: args {"op": "gte"|"gt"|"lte"|"lt"|"eq"|"ratio_pct"|"add"|"sub"|"mul"|"div", "a": number, "b": number}.
   Exact comparison or arithmetic. ratio_pct returns a / b * 100."""
 
@@ -109,6 +113,18 @@ def _get_request_field(args: dict, ctx: ToolContext) -> tuple[str, dict]:
     return f'<field path="{path}" untrusted="true">{value}</field>', {"path": path}
 
 
+def _get_reference_value(args: dict, ctx: ToolContext) -> tuple[str, dict]:
+    from foodlabel.common.reference import get_reference
+
+    nutrient = str(args.get("nutrient", "")).strip()
+    if not nutrient:
+        raise ValueError("nutrient is required")
+    ref = get_reference(nutrient)
+    if ref is None:
+        return json.dumps({"nutrient": nutrient, "found": False}), {"nutrient": nutrient, "found": False}
+    return json.dumps({**ref, "found": True}), {"nutrient": nutrient, "found": True, "value": ref["value"]}
+
+
 def _compute(args: dict, ctx: ToolContext) -> tuple[str, dict]:
     op = args.get("op")
     a, b = float(args["a"]), float(args["b"])
@@ -127,6 +143,7 @@ TOOLS = {
     "search_corpus": _search_corpus,
     "get_clause": _get_clause,
     "get_request_field": _get_request_field,
+    "get_reference_value": _get_reference_value,
     "compute": _compute,
 }
 

@@ -35,10 +35,18 @@ itself and adds the result to the analyst's context (a different retrieval strat
 After `MAX_VERIFY_ATTEMPTS` it escalates. `prompts/analyst.v2.yaml` additionally instructs the model to look for modifying
 provisions itself; the evaluation compares v1 and v2.
 
+## Thresholds stated as a percentage of the RDA
+
+The claims regulation gives "source of protein" as 10 per cent. of the Recommended Dietary Allowance, without the
+allowance. The analyst calls `get_reference_value("protein")` (`common/reference.py`, 54 g/day, ICMR-NIN 2020) and
+reports `values.percent_of_reference` and `values.reference`. The verifier checks that the percentage appears in the
+quoted text, that the reference equals the table's value, and that threshold = percentage x reference, then recomputes
+the status. A nutrient absent from the table must be answered `needs_review`.
+
 ## Verification checks (A3) - `verifier/checks.py`
 
 `CITATION_NOT_RETRIEVED`, `PASSAGE_TAMPERED` (passage id embeds a hash of its text), `QUOTE_NOT_IN_PASSAGE`, `NO_CITATION`,
-`CLAIM_CONDITION_MISSING`, `NUMERIC_MISMATCH` (status recomputed from `values`), `THRESHOLD_NOT_IN_QUOTE`, and optionally
+`CLAIM_CONDITION_MISSING`, `NUMERIC_MISMATCH` (status recomputed from `values`), `THRESHOLD_NOT_IN_QUOTE`, `REFERENCE_UNSUPPORTED`, `DERIVATION_INVALID`, and optionally
 `NOT_ENTAILED` from an LLM judge (`VERIFIER_USE_LLM=true`). Deterministic checks are the hard gate.
 
 ## Escalation (F7)

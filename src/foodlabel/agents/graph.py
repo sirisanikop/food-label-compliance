@@ -76,6 +76,8 @@ STRATEGY_HINTS = {
     "NO_CITATION": "Every met/unmet finding needs at least one citation with a verbatim quote.",
     "NUMERIC_MISMATCH": "Recompute the comparison with the compute tool and correct the status.",
     "THRESHOLD_NOT_IN_QUOTE": "The threshold you state must appear in the quoted text. Quote the sentence containing it.",
+    "REFERENCE_UNSUPPORTED": "Use get_reference_value for the RDA and copy its value exactly; if it reports no value, set needs_review.",
+    "DERIVATION_INVALID": "For a percentage-of-RDA threshold set values.percent_of_reference and values.reference {nutrient, value}.",
     "NOT_ENTAILED": "The cited passage does not support the explanation. Find a passage that does, or set status needs_review.",
 }
 

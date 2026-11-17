@@ -54,6 +54,9 @@ def handle(run_id: str) -> None:
         if cached:
             result = {**cached, "run_id": run_id, "cache_hit": True, "usage": {}}
             trace_store.record_event(run_id, "cache", "run_cache_hit", {"key": key[:16]})
+            cached_passages = cache.get_json("runpass", key)
+            if cached_passages:  # keep citations readable in context for cache-served runs too
+                runstore.save_retrieved(run_id, cached_passages)
             _finish(run_id, rec, "completed", result)
             return
 
@@ -63,6 +66,8 @@ def handle(run_id: str) -> None:
             runstore.save_retrieved(run_id, outcome.retrieved)
         if outcome.status == "completed" and not outcome.result.get("escalated"):
             cache.put_cached_run(key, outcome.result)
+            if outcome.retrieved:
+                cache.set_json("runpass", key, outcome.retrieved)
         _finish(run_id, rec, outcome.status, outcome.result)
         live_scoring.maybe_score(run_id, request, outcome.result, outcome.retrieved)
 

@@ -32,6 +32,31 @@ def _num_in(text: str, value: float) -> bool:
     return any(abs(n - value) < 1e-9 for n in nums)
 
 
+def _check_derived(i: int, v: dict, threshold: float, quotes: str, has_citation: bool) -> list[VerifyIssue]:
+    """A threshold stated by the regulation as a percentage of a reference value (RDA).
+
+    The percentage must be in the cited text, the reference must match the sourced table, and the
+    threshold must equal percentage x reference. This keeps the arithmetic checkable instead of trusted.
+    """
+    from foodlabel.common.reference import get_reference
+
+    out: list[VerifyIssue] = []
+    try:
+        pct = float(v["percent_of_reference"])
+        ref = v.get("reference") or {}
+        ref_value = float(ref["value"])
+    except (KeyError, TypeError, ValueError):
+        return [VerifyIssue(code="DERIVATION_INVALID", finding_index=i, detail="percent_of_reference needs reference.value and reference.nutrient")]
+    if has_citation and not _num_in(quotes, pct):
+        out.append(VerifyIssue(code="THRESHOLD_NOT_IN_QUOTE", finding_index=i, detail=f"{pct} per cent is not in the cited text"))
+    known = get_reference(str(ref.get("nutrient", "")))
+    if known is None or abs(known["value"] - ref_value) > 1e-9:
+        out.append(VerifyIssue(code="REFERENCE_UNSUPPORTED", finding_index=i, detail=f"no sourced reference value {ref_value} for {ref.get('nutrient')}"))
+    if abs(pct / 100.0 * ref_value - threshold) > 1e-6:
+        out.append(VerifyIssue(code="NUMERIC_MISMATCH", finding_index=i, detail=f"{pct}% of {ref_value} is {pct / 100.0 * ref_value}, not {threshold}"))
+    return out
+
+
 def check_findings(
     findings: list[Finding], retrieved: list[PassageRef], claims_detected: list[str]
 ) -> tuple[list[VerifyIssue], list[str]]:
@@ -65,7 +90,10 @@ def check_findings(
                 issues.append(VerifyIssue(code="NUMERIC_MISMATCH", finding_index=i,
                                           detail=f"{declared} {v['comparator']} {threshold} is {holds}, status says {f.status}"))
             quotes = " ".join(c.quote for c in f.citations)
-            if f.citations and not _num_in(quotes, threshold):
+            derived = v.get("percent_of_reference")
+            if derived is not None:
+                issues += _check_derived(i, v, float(threshold), quotes, bool(f.citations))
+            elif f.citations and not _num_in(quotes, threshold):
                 issues.append(VerifyIssue(code="THRESHOLD_NOT_IN_QUOTE", finding_index=i, detail=str(threshold)))
 
     # Every detected claim needs a finding that cites the claims regulation (the case in section 4.1).
