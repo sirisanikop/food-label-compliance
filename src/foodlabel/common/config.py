@@ -78,6 +78,9 @@ class Settings:
     worker_metrics_port: int
     live_score_sample_rate: float
     quarantine_dir: str
+    # --- security / ui ---
+    api_keys: str
+    ui_links: str
 
     def require(self, *names: str) -> None:
         missing = [n for n in names if not getattr(self, n)]
@@ -126,6 +129,8 @@ def get_settings() -> Settings:
         worker_metrics_port=_i("WORKER_METRICS_PORT", 9100),
         live_score_sample_rate=_f("LIVE_SCORE_SAMPLE_RATE", 0.1),
         quarantine_dir=_s("QUARANTINE_DIR", "/app/data/quarantine"),
+        api_keys=_s("API_KEYS", ""),
+        ui_links=_s("UI_LINKS", "grafana=http://localhost:3000,traces=http://localhost:16686,metrics=http://localhost:9090,api_docs=http://localhost:8000/docs"),
     )
 
 

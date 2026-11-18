@@ -18,6 +18,8 @@ HTTP_LATENCY = Histogram("http_request_duration_seconds", "HTTP latency", ["serv
 # ---- API ------------------------------------------------------------------
 RUNS_SUBMITTED = Counter("runs_submitted_total", "Runs accepted and queued")
 QUARANTINED = Counter("requests_quarantined_total", "Requests rejected at the ingestion boundary")
+INGEST_DRIFT = Gauge("ingest_drift_score", "Standardised shift of recent request values vs the baseline", ["field"])
+AUTH_FAILURES = Counter("auth_failures_total", "Requests rejected for a missing or invalid API key")
 RATE_LIMITED = Counter("rate_limited_total", "Requests rejected by the rate limiter")
 QUEUE_DEPTH = Gauge("run_queue_depth", "Runs waiting for a worker")
 

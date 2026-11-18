@@ -27,3 +27,8 @@ script, commit the regenerated JSON.
 
 cAdvisor needs host access and may expose fewer container labels on Docker Desktop (Windows/macOS); if `name=~".+"` panels are empty,
 check `http://localhost:8081/containers/` and adjust the label in `build_dashboard.py`.
+
+## Added signals
+
+- `ingest_drift_score` (gauge per field): standardised shift of the recent mean against the baseline; above 3 the field is flagged in `/v1/drift`.
+- `auth_failures_total`: rejected API-key checks.

@@ -33,3 +33,16 @@ evidence for demonstration item 4: `run_queue_depth` and `runs_submitted_total` 
 
 `product_name`, `category_hint`, `ingredients_text`, `allergen_statement`, `front_of_pack_text`, `label_text`,
 `claims_declared[]` are untrusted and pass through the guardrails (`docs/guardrails.md`) before any model sees them.
+
+## Additional endpoints
+
+| Endpoint | Purpose |
+|---|---|
+| `POST /v1/validate` | Check a request against the contract without queueing or quarantining; returns `{valid}` or field errors (the UI uses it for live checking) |
+| `GET /v1/runs` | Recent runs (product, status, route) for the history panel |
+| `GET /v1/runs/{id}/passages` | The regulation passages a run retrieved, so the UI can show each citation in context |
+| `GET /v1/meta` | Scope (category), prompt versions, whether a key is required, UI links |
+| `GET /v1/drift` | Ingestion drift per numeric field (baseline of first 30 submissions vs rolling window of 30) |
+
+If `API_KEYS` is set, every `/v1` call needs `X-API-Key`; `/healthz` and `/metrics` stay open for probes. Failures
+increment `auth_failures_total`. Keys are compared in constant time. This is a shared-secret gate for a demo, not user accounts.

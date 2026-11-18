@@ -35,16 +35,38 @@ def _observations(messages: list[dict]) -> list[str]:
     return [m["content"] for m in messages if m.get("role") == "user" and m["content"].startswith("OBSERVATION")]
 
 
-def _analyst(messages: list[dict]) -> dict:
-    obs = _observations(messages)
-    if len(obs) == 0:
-        return {"action": "search_corpus", "args": {"query": "labelling requirements for this product", "doc": "labelling", "k": 3}}
-    if len(obs) == 1:
-        return {"action": "search_corpus", "args": {"query": "conditions for nutrient content claims", "doc": "claims", "k": 3}}
-    passages = [p for o in obs for p in PASSAGE_RE.findall(o)]
+def _label(messages: list[dict]) -> dict:
+    first_user = next((m["content"] for m in messages if m.get("role") == "user"), "")
+    m = re.search(r"<label_data>\s*(\{.*\})\s*</label_data>", first_user, re.S)
+    try:
+        return json.loads(m.group(1)) if m else {}
+    except ValueError:
+        return {}
+
+
+def _claims(messages: list[dict]) -> list[str]:
     first_user = next((m["content"] for m in messages if m.get("role") == "user"), "")
     m = CLAIMS_RE.search(first_user)
-    claims = [] if not m or m.group(1).strip().lower() == "none" else [c.strip() for c in m.group(1).split("|")]
+    return [] if not m or m.group(1).strip().lower() == "none" else [c.strip() for c in m.group(1).split("|")]
+
+
+def _analyst(messages: list[dict]) -> dict:
+    """A tiny scripted analyst that follows the real protocol: search labelling, search claims, look up the
+    reference allowance for a protein claim, then finish. Only the protein claim is evaluated (10 per cent.
+    of RDA, Schedule I row 11); other claims are left for a person (needs_review)."""
+    obs = _observations(messages)
+    claims = _claims(messages)
+    protein = next((c for c in claims if "protein" in c), None)
+    plan = [
+        {"action": "search_corpus", "args": {"query": "labelling requirements for this product", "doc": "labelling", "k": 3}},
+        {"action": "search_corpus", "args": {"query": (protein or (claims[0] if claims else "nutrient content claims")) + " conditions", "doc": "claims", "k": 4}},
+    ]
+    if protein:
+        plan.append({"action": "get_reference_value", "args": {"nutrient": "protein"}})
+    if len(obs) < len(plan):
+        return plan[len(obs)]
+    passages = [p for o in obs for p in PASSAGE_RE.findall(o)]
+    label = _label(messages)
     findings = []
     claim_passages = [p for p in passages if p[1] == "claims"] or passages
     label_passages = [p for p in passages if p[1] == "labelling"] or passages
@@ -57,29 +79,59 @@ def _analyst(messages: list[dict]) -> dict:
     if fault == "wrong_source_once" and not after_feedback:
         claim_passages = label_passages
     bad_quote = fault == "always_bad_quote" or (fault == "bad_quote_once" and not after_feedback)
+
+    def quote_of(text: str, prefer: str | None = None) -> str:
+        if prefer and prefer in text:
+            return prefer
+        flat = re.sub(r"\s+", " ", text)
+        return flat[:90].rsplit(" ", 1)[0]
+
     if label_passages:
         pid, _doc, _clause, text = label_passages[0]
         findings.append(
-            {"requirement_id": "LBL-1", "claim": None, "summary": "Labelling requirement reviewed",
-             "status": "met", "explanation": "Stub finding.",
-             "citations": [{"passage_id": pid, "quote": text[:80].rsplit(" ", 1)[0]}], "values": None}
-        )
+            {"requirement_id": "LBL-1", "claim": None, "summary": "Mandatory label declarations", "status": "met",
+             "explanation": "The label supplies the declarations this provision lists (stub model: not assessed in depth).",
+             "citations": [{"passage_id": pid, "quote": quote_of(text)}], "values": None})
     for i, claim in enumerate(claims, 1):
         if not claim_passages:
             break
-        pid, _doc, _clause, text = claim_passages[0]
-        quote = "invented text that appears in no retrieved passage" if bad_quote else text[:80].rsplit(" ", 1)[0]
-        findings.append(
-            {"requirement_id": f"CLAIM-{i}", "claim": claim, "summary": f"Condition for claim '{claim}'",
-             "status": "needs_review", "explanation": "Stub finding.",
+        is_protein = claim == protein
+        pick = next((p for p in claim_passages if is_protein and re.search(r"11\.\s*Protein", p[3])), claim_passages[0])
+        pid, _doc, _clause, text = pick
+        quote = "invented text that appears in no retrieved passage" if bad_quote else quote_of(
+            text, "10 per cent. of Recommended Dietary Allowance per 100 g for solids" if is_protein else None)
+        f = {"requirement_id": f"CLAIM-{i}", "claim": claim, "summary": f"Conditions for the claim '{claim}'",
+             "status": "needs_review", "explanation": "The stub model does not evaluate this claim; a person should.",
              "citations": [{"passage_id": pid, "quote": quote}], "values": None}
-        )
+        if is_protein and re.search(r"11\.\s*Protein", text) and not bad_quote:
+            declared = float((label.get("nutrition") or {}).get("protein_g", 0))
+            threshold = round(0.10 * 54.0, 3)
+            ok = declared >= threshold
+            f.update(status="met" if ok else "unmet",
+                     explanation=f"A 'source of protein' claim needs at least 10 per cent. of the protein allowance per 100 g of solid food. "
+                                 f"The label declares {declared:g} g per 100 g against {threshold:g} g needed.",
+                     values={"declared": declared, "comparator": "gte", "threshold": threshold, "unit": "g/100g",
+                             "percent_of_reference": 10, "reference": {"nutrient": "protein", "value": 54.0}})
+        findings.append(f)
     return {"action": "finish", "findings": findings, "conflicts": [], "possible_exemptions": []}
 
 
 def _respond(step: str, messages: list[dict]) -> str:
     if step == "classify":
-        return json.dumps({"in_scope": True, "category": "in-scope"})
+        user = next((m["content"] for m in messages if m.get("role") == "user"), "")
+        cat = re.search(r'category "([^"]+)"', user)
+        words = {w for w in re.findall(r"[a-z]{4,}", (cat.group(1) if cat else "").lower())}
+        hint = re.search(r'"(?:category_hint|product_name)": "([^"]*)"', user)
+        data = {}
+        try:
+            data = json.loads(re.search(r"<label_data>\s*(\{.*\})\s*</label_data>", user, re.S).group(1))
+        except (AttributeError, ValueError):
+            pass
+        values = " ".join(str(data.get(k, "")) for k in ("product_name", "category_hint", "ingredients_text"))
+        label_words = {w.rstrip("s") for w in re.findall(r"[a-z]{4,}", values.lower())}
+        words = {w.rstrip("s") for w in words}
+        in_scope = not words or bool(words & label_words)
+        return json.dumps({"in_scope": in_scope, "category": hint.group(1) if hint else "unknown"})
     if step == "verifier_judge":
         return json.dumps({"supported": True, "reason": "stub"})
     return json.dumps(_analyst(messages))

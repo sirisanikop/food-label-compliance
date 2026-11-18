@@ -1,3 +1,4 @@
 FROM nginx:1.27-alpine
-COPY services/web/nginx.conf /etc/nginx/conf.d/default.conf
+ENV API_KEY=""
+COPY services/web/default.conf.template /etc/nginx/templates/default.conf.template
 COPY services/web/index.html /usr/share/nginx/html/index.html

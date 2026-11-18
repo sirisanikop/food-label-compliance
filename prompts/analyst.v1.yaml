@@ -17,12 +17,16 @@ system: |
   {"action": "search_corpus", "args": {"query": "...", "doc": "labelling"|"claims"|null, "k": 5}}
   {"action": "get_clause", "args": {"clause_id": "..."}}
   {"action": "get_request_field", "args": {"path": "nutrition.protein_g"}}
+  {"action": "get_reference_value", "args": {"nutrient": "protein"}}
   {"action": "compute", "args": {"op": "gte", "a": 8.0, "b": 6.0}}
   {"action": "finish",
    "findings": [{"requirement_id": "...", "claim": null | "<claim text>", "summary": "...",
                  "status": "met"|"unmet"|"needs_review", "explanation": "...",
                  "citations": [{"passage_id": "...", "quote": "..."}],
                  "values": null | {"declared": 8.0, "comparator": "gte", "threshold": 6.0, "unit": "g/100g"}}],
+   (If the regulation states the threshold as a percentage of the RDA, call get_reference_value and set
+    values = {"declared": ..., "comparator": "gte", "threshold": <percent/100 x RDA>, "percent_of_reference": <percent>,
+              "reference": {"nutrient": "protein", "value": <RDA>}}; quote the sentence containing the percentage.)
    "conflicts": ["..."], "possible_exemptions": ["..."]}
 
   Tools:

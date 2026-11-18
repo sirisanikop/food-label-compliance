@@ -41,6 +41,14 @@ Requirements: Docker with Compose v2.24 or newer.
 | Jaeger traces | http://localhost:16686 |
 | Prometheus | http://localhost:9090 |
 
+**Offline / no-download run:** set `EMBED_MODEL=local-hash` to build the index without downloading a model
+(lower retrieval quality; for development and demos). Set `API_KEYS=key1` (and `WEB_API_KEY=key1`) to require an
+`X-API-Key`.
+
+The web client is a single page: a guided form (with example labels and live validation), a result panel with the
+route, per-requirement findings, each citation shown in its regulation passage, a step timeline, feedback, and run
+history. It works on a phone and in dark mode; screenshots are in `docs/screenshots/`.
+
 Try the API directly:
 
 ```bash
@@ -86,3 +94,11 @@ python scripts/export_contracts.py     # regenerate contracts/*.json after chang
 `docs/evaluation.md` - `docs/guardrails.md` - `docs/observability.md` - `docs/slo.md` -
 `docs/scaling.md` - `docs/runbook.md` - `docs/incident_log.md` - `docs/deployment_boundaries.md` -
 `docs/demo_checklist.md` - `docs/team/` (who owns what)
+
+## Honest limits
+
+- The Docker images and the Prometheus/Grafana/Jaeger/cAdvisor containers were **not** built or run by the author of this
+  revision (no registry access); the services were run natively and the full test-suite passes. Run `docker compose up --build` and fix anything it shows.
+- Quantitative results were produced with the stub model and the offline embedder, so they describe the system's
+  plumbing, not answer quality. Re-run `make eval` with a real model before reporting accuracy.
+- Not covered from the syllabus: gRPC, Feast, BentoML, CrewAI, LlamaIndex, TruLens (own evaluation metrics are used instead).

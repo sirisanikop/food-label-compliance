@@ -48,6 +48,17 @@ _TOXIC_TERMS = (
 )
 _TOXIC_RE = re.compile("|".join(re.escape(t) for t in _TOXIC_TERMS), re.I)
 TOXICITY_THRESHOLD = 0.5
+PLAIN = {
+    "override_instructions": "text telling the checker to ignore its rules",
+    "role_hijack": "text trying to give the checker a new role",
+    "route_forcing": "text demanding a particular recommendation",
+    "prompt_exfiltration": "text asking the checker to reveal its instructions",
+    "chat_markup": "chat-control markup",
+    "toxicity": "abusive language",
+    "hidden_characters": "hidden characters",
+    "tool_abuse": "text asking for tool use",
+    "delimiter_break": "markup that tries to break out of the label data",
+}
 
 
 def toxicity_score(text: str) -> float:
@@ -64,8 +75,11 @@ class GuardrailReport:
 
     @property
     def summary(self) -> str:
-        kinds = sorted({f["kind"] for f in self.flags})
-        return ", ".join(kinds) if kinds else "none"
+        kinds = sorted({f["kind"] for f in self.flags if f["severity"] == "high"} or {f["kind"] for f in self.flags})
+        words = [PLAIN.get(k, k) for k in kinds]
+        fields = sorted({f["field"] for f in self.flags if f["severity"] == "high"})
+        where = f" in {', '.join(fields)}" if fields else ""
+        return (", ".join(words) + where) if words else "none"
 
 
 def _neutralise(text: str) -> str:

@@ -9,16 +9,17 @@ submission and execution, so the number of workers scales independently of the A
 """
 from __future__ import annotations
 
+import hmac
 import logging
 import time
 from typing import Optional
 
-from fastapi import FastAPI, Header, HTTPException, Request, Response
+from fastapi import Depends, FastAPI, Header, HTTPException, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
-from foodlabel.api import quarantine
+from foodlabel.api import drift, quarantine
 from foodlabel.common import runstore
 from foodlabel.common.config import get_settings
 from foodlabel.common.redis_client import get_redis
@@ -39,10 +40,26 @@ SERVICE = "api"
 init_logging(SERVICE)
 log = logging.getLogger("foodlabel.api")
 
+def require_api_key(request: Request) -> None:
+    """Optional API-key authentication (Unit 2: security). Off unless API_KEYS is set.
+
+    Keys are compared in constant time. Health, readiness, metrics and the docs stay open so that probes
+    and Prometheus work; everything under /v1 requires `X-API-Key` when authentication is on.
+    """
+    keys = [k.strip() for k in get_settings().api_keys.split(",") if k.strip()]
+    if not keys or not request.url.path.startswith("/v1"):
+        return
+    supplied = request.headers.get("x-api-key", "")
+    if not any(hmac.compare_digest(supplied, k) for k in keys):
+        metrics.AUTH_FAILURES.inc()
+        raise HTTPException(status_code=401, detail="missing or invalid API key", headers={"WWW-Authenticate": "ApiKey"})
+
+
 app = FastAPI(
     title="Food Label Compliance Check Service",
     version="0.1.0",
     description="Produces compliance findings with citations. Never approves a label for print.",
+    dependencies=[Depends(require_api_key)],
 )
 app.add_middleware(metrics.HTTPMetricsMiddleware, service=SERVICE)
 app.add_middleware(CorrelationMiddleware)
@@ -106,6 +123,7 @@ def submit_run(
     )
     if created:
         runstore.enqueue(run_id)
+        drift.observe(label.model_dump(mode="json"))
         metrics.RUNS_SUBMITTED.inc()
         log.info("run submitted", extra={"run_id": run_id, "client_id": client_id})
     return SubmitResponse(
@@ -143,6 +161,90 @@ def get_trace(run_id: str):
         "events": trace_store.get_trace(run_id),
         "summary": trace_store.summarize(run_id),
     }
+
+
+@app.post("/v1/validate")
+def validate_only(label: LabelRequest):
+    """Validate a label against the data contract without queueing a run or quarantining it.
+    Used by the web form for live feedback; a failure is the same 422 field-error body."""
+    return {"valid": True}
+
+
+def _summary(rec: dict) -> dict:
+    result = rec.get("result") or {}
+    req = rec.get("request") or {}
+    return {
+        "run_id": rec["run_id"],
+        "status": rec.get("status", "queued"),
+        "product_name": req.get("product_name"),
+        "route": result.get("route"),
+        "degraded": bool(result.get("degraded")),
+        "escalated": bool(result.get("escalated")),
+        "cache_hit": bool(result.get("cache_hit")),
+        "n_findings": len(result.get("findings", [])),
+        "submitted_at": rec.get("submitted_at"),
+        "finished_at": rec.get("finished_at"),
+    }
+
+
+@app.get("/v1/runs")
+def list_runs(limit: int = 20):
+    """Most recent runs (newest first) for the web client's history panel."""
+    out = []
+    for rid in runstore.list_recent_runs(max(1, min(limit, 100))):
+        rec = runstore.get_run(rid)
+        if rec:
+            out.append(_summary(rec))
+    return {"runs": out}
+
+
+@app.get("/v1/runs/{run_id}/passages")
+def get_run_passages(run_id: str):
+    """The regulation passages this run retrieved, so a citation can be read in context."""
+    if runstore.get_run(run_id) is None:
+        raise HTTPException(404, "unknown run_id")
+    retrieved = runstore.get_retrieved(run_id)
+    return {
+        "run_id": run_id,
+        "passages": {
+            pid: {k: p.get(k) for k in ("passage_id", "doc_id", "doc_role", "clause_ref", "section_path", "page", "text")}
+            for pid, p in retrieved.items()
+        },
+    }
+
+
+@app.get("/v1/meta")
+def meta():
+    """What the web client needs to describe the service: scope, corpus freshness, prompt versions, links."""
+    from foodlabel.ingest.freshness import read_manifest
+    from foodlabel.llmops import prompts
+
+    s = get_settings()
+    m = read_manifest() or {}
+    links = dict(kv.split("=", 1) for kv in s.ui_links.split(",") if "=" in kv)
+    return {
+        "service": "Food Label Compliance Check",
+        "version": app.version,
+        "category": s.corpus_category,
+        "auth_required": bool([k for k in s.api_keys.split(",") if k.strip()]),
+        "prompt_versions": prompts.active_versions(("classify", "analyst", "verifier_judge")),
+        "limits": {"rate_limit_per_min": s.rate_limit_per_min, "max_steps": s.max_steps, "run_timeout_s": s.run_timeout_s},
+        "corpus": {
+            "build_id": m.get("build_id"),
+            "built_at": m.get("built_at"),
+            "chunks": m.get("chunk_count"),
+            "documents": [
+                {"doc_id": d["doc_id"], "role": d["role"], "version": d.get("version", ""), "pages": d.get("pages")}
+                for d in m.get("documents", [])
+            ],
+        },
+        "links": links,
+    }
+
+
+@app.get("/v1/drift")
+def drift_report():
+    return drift.summary()
 
 
 # ---------------------------------------------------------------- feedback / quality

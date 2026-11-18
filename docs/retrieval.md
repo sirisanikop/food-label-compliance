@@ -44,6 +44,18 @@ Prometheus exposes `foodlabel_index_built_timestamp_seconds`, `foodlabel_index_c
 ## Not yet done (Person 3)
 
 - Run the pipeline on the real PDFs and fix the heading regexes where the PDF text differs.
-- Decide whether hybrid (keyword + vector) search helps for table rows; measure with context relevance before adding it.
+- Hybrid search was added (see below); re-measure on the real embedding model before trusting the numbers.
 - Re-ranking if precision is low.
 - OCR step if any document is scanned.
+
+## Hybrid search and the offline embedder
+
+`search()` blends a vector score and a BM25 keyword score after min-max normalising each to 0..1
+(`RETRIEVAL_LEXICAL_WEIGHT`, default 0.65 keyword). Table rows such as "11. Protein ... Source" are found by their
+exact words far more reliably than by meaning alone. Reciprocal-rank fusion was tried first and scored worse
+(recall@4 0.47 on the claims questions, against 0.82-0.94 for the min-max blend), so it was not kept.
+The cache key carries an algorithm tag and the weight, so changing either invalidates cached results.
+
+`EMBED_MODEL=local-hash` is an offline embedder (hashed words and bigrams, no download, no torch). The numbers above
+were measured with it, because the build sandbox had no internet. It is weaker than a trained model: re-run
+`make eval` with `sentence-transformers/all-MiniLM-L6-v2` and report those numbers in the final report.

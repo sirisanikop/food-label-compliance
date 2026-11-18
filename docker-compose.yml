@@ -89,6 +89,8 @@ services:
 
   web:
     build: { context: ., dockerfile: services/web/Dockerfile }
+    environment:
+      API_KEY: ${WEB_API_KEY:-}      # only needed when API_KEYS is set for the api service
     ports: ["8080:80"]
     depends_on:
       api: { condition: service_healthy }
