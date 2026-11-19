@@ -6,11 +6,11 @@
 Groups: five "source of protein" cases (the section 4.1 family), four other claim types, three labelling-only cases by pack size,
 two out-of-scope products, three prompt injections, three ambiguous cases.
 
-**Before you rely on it:** `expected_route`, `expected_passages` and `verified_against_corpus` are deliberately unfilled for cases whose
-answer depends on the regulation text. Fill them from the real corpus (at Evaluation 1 for the 4.1 case, then the rest) and set
-`verified_against_corpus: true`. Metrics that need an expectation are skipped while it is empty, so the numbers you report are only
-as meaningful as the expectations you have confirmed. Structural expectations (out-of-scope and injection cases must escalate, a claim
-must cite the claims regulation) are already set.
+**Status of the expectations:** 15 of 20 scenarios are verified against the corpus text (`verified_against_corpus: true`): the five
+"source of protein" cases, the four other claim cases, the contradictory and multiple-claim cases, and the three labelling-only cases and
+the vague claim. The labelling-only cases and the vague claim expect `regulatory-review`, because the request carries no letter height
+(Reg 6(3)) and "healthy" has no defined condition (Claims Reg 4(1)), so the correct analyst answer is `needs_review`. The two out-of-scope
+and three injection cases are marked unverified until a run with the real model confirms that they escalate.
 
 ## Running
 
@@ -47,3 +47,22 @@ all four metrics before and after.
 A fraction (`LIVE_SCORE_SAMPLE_RATE`) of finished runs is scored with groundedness, hallucination rate and faithfulness
 (`llmops/live_scoring.py`). Points are served at `GET /v1/quality` and charted in Grafana as `live_quality_score`. Caller feedback
 (`POST /v1/runs/{id}/feedback`) is aggregated at `GET /v1/feedback/summary`, including by prompt version.
+
+## Results so far (real model, small and incomplete)
+
+The full 20-scenario evaluation was **not** run with a real model: the provider's free tier limits tokens per minute and request size, and
+an attempted batch run failed (all five scenarios degraded) because the API key had just been replaced. Those degraded numbers are not
+results and are not reported. What was run by hand, on the "source of protein" case with 2.5 g protein per 100 g (expected: unmet, 5.4 g needed):
+
+| Model (Groq free tier) | Prompt | Model calls | Searches and lookups | Route | Notes |
+|---|---|---|---|---|---|
+| `openai/gpt-oss-120b` | v1 | 8 | 3 | revise-and-recheck | Correct derivation (10% of 54 g = 5.4 g); two citations; later runs rate-limited (429) |
+| `qwen/qwen3.8-27b` | v1 | 6 | 4 | revise-and-recheck | Correct derivation; headline used the passage id as requirement id |
+| `openai/gpt-oss-20b` | v1 | - | - | failed 5 of 5 | `tool_use_failed`; does not follow the JSON action protocol |
+| `qwen/qwen3.8-27b` | v2 | - | - | failed | 413: request over the 7,000 input tokens per minute limit |
+
+Findings: the derived-threshold verification works with real models; model choice matters (one model could not follow the protocol, one
+prompt was too large for a small free-tier limit); retries, the circuit breaker and the degraded route kept every failure safe (no
+unsupported answer was returned). Not shown: a v1 versus v2 comparison, because v2 never completed; the scores for the 20-scenario set; and
+the stub-model runs, which exercise the plumbing but say nothing about answer quality. Run `make eval` with a higher-limit key before
+reporting accuracy.
