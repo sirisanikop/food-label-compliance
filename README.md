@@ -61,6 +61,31 @@ curl -s localhost:8000/v1/runs/<run_id>/trace              # full reconstruction
 Scale the agent workers: `docker compose up --build --scale worker=3`.
 Load test (uses the stub model): `docker compose --profile loadtest run --rm locust` (see `loadtest/README.md`).
 
+## Docker troubleshooting
+
+- **Windows: use WSL 2.** Docker Desktop should use the WSL 2 backend (Settings > General > "Use the WSL 2 based
+  engine"). Clone the repo inside the WSL filesystem (for example `~/food-label-compliance`), not under `/mnt/c/...`;
+  bind mounts and builds on the Windows drive are much slower and can break file watching. Run the `docker compose`
+  commands from the WSL shell. If builds run out of memory, raise the limit in `%UserProfile%\.wslconfig`
+  (`[wsl2]` then `memory=6GB`) and run `wsl --shutdown` before restarting Docker Desktop.
+- **`docker compose` not found, or an unknown-option error.** This project needs Compose v2.24 or newer. Check with
+  `docker compose version` and update Docker Desktop (or the Compose plugin) if it is older. Use `docker compose`
+  (with a space), not the old `docker-compose`.
+- **`.env` problems.** Copy the example once with `cp .env.example .env`. Compose reads `.env.example` first and then
+  `.env`, so `.env` only needs the values you change. Keep each setting as `KEY=value` on one line, with no quotes or
+  spaces around `=`, and never commit `.env` (it is git-ignored). After editing it, re-create the containers with
+  `docker compose up --build`; a running stack does not pick up changes.
+- **First start is slow or stalls while building the index.** The default embedder downloads a model on first run.
+  If you are offline, behind a restrictive network, or just want a quick start, set `EMBED_MODEL=local-hash` in `.env`
+  (no download, lower retrieval quality, fine for development and demos). If you change `EMBED_MODEL` later, the index
+  is rebuilt with the new model.
+- **Port already in use.** The stack uses 8080 (web), 8000 (API), 3000 (Grafana), 16686 (Jaeger) and 9090
+  (Prometheus). Stop whatever else is using them, or stop a previous run with `docker compose down`.
+- **Stale or broken state.** `docker compose down` and then `docker compose up --build` fixes most problems. Add `-v`
+  to `down` only if you also want to delete the stored volumes (this removes the built index and history).
+- **Check what is failing.** `docker compose ps` shows service status and `docker compose logs -f <service>` follows
+  one service's logs.
+
 ## Develop
 
 ```bash
