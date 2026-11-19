@@ -60,6 +60,7 @@ curl -s localhost:8000/v1/runs/<run_id>/trace              # full reconstruction
 
 Scale the agent workers: `docker compose up --build --scale worker=3`.
 Load test (uses the stub model): `docker compose --profile loadtest run --rm locust` (see `loadtest/README.md`).
+Full matrix (1 vs 3 workers, 10 and 20 users, cached vs uncached, about 40 min): `./loadtest/run_matrix.sh`.
 
 ## Docker troubleshooting
 
@@ -122,8 +123,10 @@ python scripts/export_contracts.py     # regenerate contracts/*.json after chang
 
 ## Honest limits
 
-- The Docker images and the Prometheus/Grafana/Jaeger/cAdvisor containers were **not** built or run by the author of this
-  revision (no registry access); the services were run natively and the full test-suite passes. Run `docker compose up --build` and fix anything it shows.
+- The full stack (`docker compose up --build`, including Prometheus, Grafana, Jaeger and cAdvisor) was built and run on
+  macOS with Docker Desktop on 19 Nov 2026, and load-tested with 1 and 3 workers (`loadtest/results/full_run_rows.md`).
+  It has not been run on Windows/WSL 2 or Linux. On Docker Desktop, cAdvisor labels containers by id only, so the
+  per-container CPU/memory panels are empty.
 - Quantitative results were produced with the stub model and the offline embedder, so they describe the system's
   plumbing, not answer quality. Re-run `make eval` with a real model before reporting accuracy.
 - Not covered from the syllabus: gRPC, Feast, BentoML, CrewAI, LlamaIndex, TruLens (own evaluation metrics are used instead).

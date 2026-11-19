@@ -1,0 +1,50 @@
+=== w1_u10_uncached: workers=1 users=10 LOAD_VARY=1 ENABLE_RUN_CACHE=true
+  purged leftover queue: 0
+  warm-up: 2/2 runs finished in 35s
+--------|--------------------------------------------------------------------------------|--------|------|------|------|------|------|------|------|------|------|------|------
+         Aggregated                                                                             12     14     16     16     19     21     30     67 152000 153000 153000   5776
+
+w1_u10_uncached	1	10	1	true	19	0	148000.0	153000	153000	114434	0.058	9.0	redis=3% jaeger=1% cadvisor=4% locust=4% prometheus=2% grafana=4% web=0% verifier=16% api=18% llm=15% worker=12% 	2026-11-19T05:03:03Z	2026-11-19T05:08:33Z
+=== w3_u10_uncached: workers=3 users=10 LOAD_VARY=1 ENABLE_RUN_CACHE=true
+  purged leftover queue: 6
+  warm-up: 0/6 runs finished in 539s
+--------|--------------------------------------------------------------------------------|--------|------|------|------|------|------|------|------|------|------|------|------
+         Aggregated                                                                              7      9     10     11     14     16     24     81  59000  65000  65000   5815
+
+w3_u10_uncached	3	10	1	true	55	0	47000.0	63000	65000	48450	0.067	7.0	redis=3% jaeger=1% cadvisor=3% locust=4% prometheus=2% grafana=1% web=0% verifier=15% api=19% llm=14% worker=18% 	2026-11-19T05:17:44Z	2026-11-19T05:22:46Z
+=== w1_u20_uncached: workers=1 users=20 LOAD_VARY=1 ENABLE_RUN_CACHE=true
+  purged leftover queue: 7
+  warm-up: 2/2 runs finished in 31s
+------------------|---------------------------------------------------------------------------------------------------------------------------------------------
+
+
+w1_u20_uncached	1	20	1	true	27	15	180000.0	180000	181000	141815	0.09	27.0	redis=3% jaeger=1% cadvisor=7% locust=6% prometheus=2% grafana=3% web=0% verifier=14% api=21% llm=16% worker=1% 	2026-11-19T05:23:26Z	2026-11-19T05:28:28Z
+=== w3_u20_uncached: workers=3 users=20 LOAD_VARY=1 ENABLE_RUN_CACHE=true
+  purged leftover queue: 24
+  warm-up: 6/6 runs finished in 48s
+--------|--------------------------------------------------------------------------------|--------|------|------|------|------|------|------|------|------|------|------|------
+         Aggregated                                                                             10     13     15     16     21     25     38     61 102000 104000 104000  11483
+
+w3_u20_uncached	3	20	1	true	58	0	92000.0	104000	104000	83119	0.194	24.0	redis=3% jaeger=1% cadvisor=2% locust=6% prometheus=2% grafana=0% web=0% verifier=9% api=20% llm=14% worker=13% 	2026-11-19T05:29:28Z	2026-11-19T05:34:30Z
+=== w1_u10_cached: workers=1 users=10 LOAD_VARY=0 ENABLE_RUN_CACHE=true
+  purged leftover queue: 16
+  warm-up: 2/2 runs finished in 42s
+------------------|---------------------------------------------------------------------------------------------------------------------------------------------
+
+
+w1_u10_cached	1	10	0	true	1454	0	530.0	540	550	608	4.858	17.0	redis=4% jaeger=1% cadvisor=8% locust=4% prometheus=3% grafana=0% web=0% verifier=14% api=21% llm=14% worker=14% 	2026-11-19T05:35:20Z	2026-11-19T05:40:22Z
+=== w1_u10_cacheoff: workers=1 users=10 LOAD_VARY=0 ENABLE_RUN_CACHE=false
+  purged leftover queue: 0
+  warm-up: 2/2 runs finished in 35s
+--------|--------------------------------------------------------------------------------|--------|------|------|------|------|------|------|------|------|------|------|------
+         Aggregated                                                                             12     14     15     16     19     21     29     67 149000 150000 150000   5782
+
+w1_u10_cacheoff	1	10	0	false	19	0	147000.0	150000	150000	113168	0.064	9.0	redis=2% jaeger=1% cadvisor=5% locust=4% prometheus=2% grafana=1% web=0% verifier=14% api=16% llm=15% worker=1% 	2026-11-19T05:41:22Z	2026-11-19T05:46:23Z
+done
+case             workers  users  load_vary  run_cache  requests  failures  median_ms  p95_ms  p99_ms  avg_ms  rps    peak_queue  peak_cpu_by_service                                                                                                start_utc             end_utc
+w1_u10_uncached  1        10     1          true       19        0         148000.0   153000  153000  114434  0.058  9.0         redis=3% jaeger=1% cadvisor=4% locust=4% prometheus=2% grafana=4% web=0% verifier=16% api=18% llm=15% worker=12%   2026-11-19T05:03:03Z  2026-11-19T05:08:33Z
+w3_u10_uncached  3        10     1          true       55        0         47000.0    63000   65000   48450   0.067  7.0         redis=3% jaeger=1% cadvisor=3% locust=4% prometheus=2% grafana=1% web=0% verifier=15% api=19% llm=14% worker=18%   2026-11-19T05:17:44Z  2026-11-19T05:22:46Z
+w1_u20_uncached  1        20     1          true       27        15        180000.0   180000  181000  141815  0.09   27.0        redis=3% jaeger=1% cadvisor=7% locust=6% prometheus=2% grafana=3% web=0% verifier=14% api=21% llm=16% worker=1%    2026-11-19T05:23:26Z  2026-11-19T05:28:28Z
+w3_u20_uncached  3        20     1          true       58        0         92000.0    104000  104000  83119   0.194  24.0        redis=3% jaeger=1% cadvisor=2% locust=6% prometheus=2% grafana=0% web=0% verifier=9% api=20% llm=14% worker=13%    2026-11-19T05:29:28Z  2026-11-19T05:34:30Z
+w1_u10_cached    1        10     0          true       1454      0         530.0      540     550     608     4.858  17.0        redis=4% jaeger=1% cadvisor=8% locust=4% prometheus=3% grafana=0% web=0% verifier=14% api=21% llm=14% worker=14%   2026-11-19T05:35:20Z  2026-11-19T05:40:22Z
+w1_u10_cacheoff  1        10     0          false      19        0         147000.0   150000  150000  113168  0.064  9.0         redis=2% jaeger=1% cadvisor=5% locust=4% prometheus=2% grafana=1% web=0% verifier=14% api=16% llm=15% worker=1%    2026-11-19T05:41:22Z  2026-11-19T05:46:23Z
