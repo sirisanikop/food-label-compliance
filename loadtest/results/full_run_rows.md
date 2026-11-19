@@ -19,6 +19,12 @@ case the leftover queue was purged and every worker was warmed up. A Locust fail
 | uncached | 3 | 20 | 58 | 0 | 92 | 104 | 104 | 83 | 11.6 | 20 + 19 + 19 | 24 |
 | cached (`LOAD_VARY=0`, run cache on) | 1 | 10 | 1454 | 0 | 0.53 | 0.54 | 0.55 | 0.61 | 290.8 | 1 (rest from cache) | 17 |
 | identical requests, cache off (`ENABLE_RUN_CACHE=false`) | 1 | 10 | 19 | 0 | 147 | 150 | 150 | 113 | 3.8 | 19 | 9 |
+| uncached, `WORKER_THREADS=4` | 1 | 10 | 77 | 0 | 36 | 41 | 42 | 35 | 15.4 | 77 | 6 |
+| uncached, `WORKER_THREADS=2` | 3 | 10 | 116 | 0 | 26 | 29 | 29 | 23 | 23.2 | 41 + 39 + 39 | 11 |
+
+The two `WORKER_THREADS` rows were measured the same day, 06:20-06:32 UTC (`summary_threads.tsv`,
+`ONLY="w1t4_u10_uncached w3t2_u10_uncached" SUMMARY=loadtest/results/summary_threads.tsv ./loadtest/run_matrix.sh`).
+Peak worker memory was about 410 MiB with 1, 2 or 4 threads.
 
 Peak CPU per service (from `docker stats`, sampled every 30 s) never went above about 25%: api 17-24%, worker 14-18%,
 verifier 10-16%, llm-stub 13-16%, redis 2-4%.
@@ -29,6 +35,8 @@ verifier 10-16%, llm-stub 13-16%, redis 2-4%.
 |---|---|---|---|---|---|
 | 10 | 1 | 3.8 | 148 s | 153 s | No (p95 3.4x target; 100% completed) |
 | 10 | 3 | 11.0 | 47 s | 63 s | No (p95 1.4x target; 100% completed) |
+| 10 | 1 x 4 threads | 15.4 | 36 s | 41 s | **Yes** (100% completed) |
+| 10 | 3 x 2 threads | 23.2 | 26 s | 29 s | **Yes** (100% completed) |
 
 ## Bottleneck
 
@@ -38,9 +46,9 @@ Worker concurrency. A run holds a worker thread for about 15 s, mostly waiting o
 the host, Redis, the API, the verifier or the stub. Locust holds one run per user in flight, so latency is roughly
 (users / total worker threads) x 15 s: 10/1 x 15 = 150 s and 10/3 x 15 = 50 s, which matches the measured p50s.
 
-Implication (not measured): meeting p95 <= 45 s at 10 users needs about 4-5 worker threads in total, for example
-`--scale worker=4`, or `WORKER_THREADS=4` on one replica, which costs no extra memory for the embedding model since the
-work is I/O wait. Worth one more run before the report: 1 worker with `WORKER_THREADS=4`, and 3 workers with `WORKER_THREADS=2`.
+Confirmed by measurement: `WORKER_THREADS=4` on one replica meets the target (p95 41 s) with no extra memory, and
+3 replicas x 2 threads gives p95 29 s. The (users / threads) x 15 s estimate held: 10/4 x 15 = 37.5 s (measured p50 36 s)
+and 10/6 x 15 = 25 s (measured p50 26 s).
 
 ## Cache effect (D7)
 

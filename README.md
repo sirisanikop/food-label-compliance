@@ -21,8 +21,8 @@ Course: UE24AM342AA5 (ML System Design and AgentOps), Mini Project 10.
 
 Requirements: Docker with Compose v2.24 or newer.
 
-1. **Add the corpus.** Download the two FSSAI regulations into `data/corpus/` (names and sources in
-   `data/corpus/README.md`) and fill in the version/URL fields in `data/corpus/corpus.yaml`.
+1. **The corpus is included.** The two FSSAI regulations are committed in `data/corpus/` with their versions and
+   sources in `data/corpus/corpus.yaml` (see `data/corpus/README.md`). Nothing to download.
 2. **Start everything:**
    ```bash
    docker compose up --build
