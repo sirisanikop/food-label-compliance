@@ -1,0 +1,18 @@
+=== w1t4_u10_uncached: workers=1 threads=4 users=10 LOAD_VARY=1 ENABLE_RUN_CACHE=true
+  purged leftover queue: 0
+  warm-up: 8/8 runs finished in 35s
+--------|--------------------------------------------------------------------------------|--------|------|------|------|------|------|------|------|------|------|------|------
+         Aggregated                                                                              7      8      9     10     12     17     32  33000  41000  42000  42000   5785
+
+w1t4_u10_uncached	1	10	1	true	77	0	36000.0	41000	42000	35086	0.257	6.0	redis=3% jaeger=1% cadvisor=3% locust=5% prometheus=2% grafana=3% web=0% verifier=19% api=17% llm=19% worker=15% 	2026-11-19T06:20:40Z	2026-11-19T06:25:41Z
+=== w3t2_u10_uncached: workers=3 threads=2 users=10 LOAD_VARY=1 ENABLE_RUN_CACHE=true
+  purged leftover queue: 0
+  warm-up: 12/12 runs finished in 48s
+--------|--------------------------------------------------------------------------------|--------|------|------|------|------|------|------|------|------|------|------|------
+         Aggregated                                                                              7      8      9     10     12     19  14000  26000  29000  30000  30000   5792
+
+w3t2_u10_uncached	3	10	1	true	116	0	26000.0	29000	29000	23370	0.388	11.0	redis=3% jaeger=1% cadvisor=4% locust=5% prometheus=1% grafana=1% web=0% verifier=15% api=19% llm=15% worker=15% 	2026-11-19T06:26:58Z	2026-11-19T06:32:00Z
+done
+case               workers  users  load_vary  run_cache  requests  failures  median_ms  p95_ms  p99_ms  avg_ms  rps    peak_queue  peak_cpu_by_service                                                                                                start_utc             end_utc
+w1t4_u10_uncached  1        10     1          true       77        0         36000.0    41000   42000   35086   0.257  6.0         redis=3% jaeger=1% cadvisor=3% locust=5% prometheus=2% grafana=3% web=0% verifier=19% api=17% llm=19% worker=15%   2026-11-19T06:20:40Z  2026-11-19T06:25:41Z
+w3t2_u10_uncached  3        10     1          true       116       0         26000.0    29000   29000   23370   0.388  11.0        redis=3% jaeger=1% cadvisor=4% locust=5% prometheus=1% grafana=1% web=0% verifier=15% api=19% llm=15% worker=15%   2026-11-19T06:26:58Z  2026-11-19T06:32:00Z

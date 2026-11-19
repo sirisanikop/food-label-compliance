@@ -10,6 +10,8 @@ cd "$(dirname "$0")/.."
 RUN_TIME="${RUN_TIME:-5m}"
 RES=loadtest/results
 PROM=http://localhost:9090/api/v1/query
+SUMMARY="${SUMMARY:-$RES/summary.tsv}"   # set SUMMARY=... to keep an earlier summary
+# ONLY="case1 case2" runs just those cases.
 cp .env .env.loadtest.bak
 trap 'mv .env.loadtest.bak .env; docker compose up -d --scale worker=1 >/dev/null 2>&1' EXIT
 
@@ -20,14 +22,15 @@ set_env() { # KEY VALUE
 prom() { curl -s --get "$PROM" --data-urlencode "query=$1" | python3 -c 'import json,sys
 r=json.load(sys.stdin)["data"]["result"]; print(round(max(float(x["value"][1]) for x in r),2) if r else "n/a")'; }
 
-printf 'case\tworkers\tusers\tload_vary\trun_cache\trequests\tfailures\tmedian_ms\tp95_ms\tp99_ms\tavg_ms\trps\tpeak_queue\tpeak_cpu_by_service\tstart_utc\tend_utc\n' > "$RES/summary.tsv"
+printf 'case\tworkers\tusers\tload_vary\trun_cache\trequests\tfailures\tmedian_ms\tp95_ms\tp99_ms\tavg_ms\trps\tpeak_queue\tpeak_cpu_by_service\tstart_utc\tend_utc\n' > "$SUMMARY"
 
-run_case() { # name workers users load_vary run_cache
-  local name=$1 workers=$2 users=$3 vary=$4 cache=$5
-  if [ -n "${ONLY:-}" ] && [ "$name" != "$ONLY" ]; then return; fi
-  echo "=== $name: workers=$workers users=$users LOAD_VARY=$vary ENABLE_RUN_CACHE=$cache"
+run_case() { # name workers users load_vary run_cache [worker_threads]
+  local name=$1 workers=$2 users=$3 vary=$4 cache=$5 threads=${6:-1}
+  if [ -n "${ONLY:-}" ] && [[ " $ONLY " != *" $name "* ]]; then return; fi
+  echo "=== $name: workers=$workers threads=$threads users=$users LOAD_VARY=$vary ENABLE_RUN_CACHE=$cache"
   set_env STUB_DELAY_MS 3000
   set_env ENABLE_RUN_CACHE "$cache"
+  set_env WORKER_THREADS "$threads"
   docker compose up -d --scale worker="$workers" --wait >/dev/null 2>&1 || docker compose up -d --scale worker="$workers"
   # Start each case clean: drop the backlog Locust abandoned in the previous case (otherwise it queues ahead of
   # this case's runs and every case after the first measures the previous one's leftovers).
@@ -35,7 +38,7 @@ run_case() { # name workers users load_vary run_cache
   docker compose exec -T redis redis-cli del queue:runs >/dev/null
   # Warm-up: 2 unique runs per worker so every replica has loaded the embedding model before measuring.
   local ids=() i
-  for i in $(seq 1 $((workers * 2))); do
+  for i in $(seq 1 $((workers * threads * 2))); do
     ids+=("$(python3 -c "import json;d=json.load(open('examples/requests/source_of_protein.json'));d['product_name']+=' warmup $name $i';print(json.dumps(d))" \
       | curl -s -X POST localhost:8000/v1/runs -H 'Content-Type: application/json' -H "X-Client-Id: warmup-$i" --data @- \
       | python3 -c 'import json,sys;print(json.load(sys.stdin)["run_id"])')")
@@ -64,7 +67,7 @@ run_case() { # name workers users load_vary run_cache
   kill "$sampler" 2>/dev/null; wait "$sampler" 2>/dev/null
   local q c; q=$(prom 'max(max_over_time(run_queue_depth[6m]))')
   c=$(awk -F'\t' '{gsub("%","",$2); split($1,a,"-"); svc=a[2]; if ($2+0>m[svc]) m[svc]=$2+0} END{for(k in m) printf "%s=%.0f%% ", k, m[k]}' "$RES/${name}_dockerstats.tsv")
-  python3 - "$RES/${name}_stats.csv" "$name" "$workers" "$users" "$vary" "$cache" "$q" "$c" "$start" "$end" >> "$RES/summary.tsv" <<'PY'
+  python3 - "$RES/${name}_stats.csv" "$name" "$workers" "$users" "$vary" "$cache" "$q" "$c" "$start" "$end" >> "$SUMMARY" <<'PY'
 import csv, sys
 f, *meta = sys.argv[1:]
 row = next((r for r in csv.DictReader(open(f)) if r["Name"] == "full_run"), None)
@@ -74,7 +77,7 @@ vals = [row["Request Count"], row["Failure Count"], row["Median Response Time"],
         str(round(float(row["Average Response Time"]))), str(round(float(row["Requests/s"]), 3))]
 print("\t".join(meta[:5] + vals + meta[5:]))
 PY
-  tail -1 "$RES/summary.tsv"
+  tail -1 "$SUMMARY"
 }
 
 run_case w1_u10_uncached 1 10 1 true
@@ -83,4 +86,7 @@ run_case w1_u20_uncached 1 20 1 true
 run_case w3_u20_uncached 3 20 1 true
 run_case w1_u10_cached   1 10 0 true
 run_case w1_u10_cacheoff 1 10 0 false
-echo "done"; column -t -s $'\t' "$RES/summary.tsv"
+# More worker threads (runs per replica) instead of more replicas: ONLY="w1t4_u10_uncached w3t2_u10_uncached"
+run_case w1t4_u10_uncached 1 10 1 true 4
+run_case w3t2_u10_uncached 3 10 1 true 2
+echo "done"; column -t -s $'\t' "$SUMMARY"
