@@ -75,6 +75,10 @@ class LLMClient:
                 raise RetryableError(f"transport: {exc.__class__.__name__}") from exc
             if r.status_code == 429 or r.status_code >= 500:
                 raise RetryableError(f"http {r.status_code}")
+            if r.status_code == 400 and "tool_use_failed" in r.text:
+                # Some models (e.g. gpt-oss on Groq) occasionally emit a native tool call instead of the JSON
+                # action this protocol asks for; the provider rejects it. A retry normally answers in plain text.
+                raise RetryableError("http 400: tool_use_failed")
             if r.status_code >= 400:
                 raise LLMError(f"http {r.status_code}: {r.text[:200]}")
             return r.json()

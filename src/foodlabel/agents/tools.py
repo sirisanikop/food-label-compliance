@@ -13,6 +13,7 @@ from __future__ import annotations
 import concurrent.futures
 import json
 import logging
+import os
 import time
 from dataclasses import dataclass, field
 from typing import Any, Optional
@@ -34,7 +35,17 @@ TOOL_DESCRIPTIONS = """\
 - compute: args {"op": "gte"|"gt"|"lte"|"lt"|"eq"|"ratio_pct"|"add"|"sub"|"mul"|"div", "a": number, "b": number}.
   Exact comparison or arithmetic. ratio_pct returns a / b * 100."""
 
-MAX_PASSAGE_CHARS = 1500
+MAX_PASSAGE_CHARS = 1500  # default; override with PASSAGE_MAX_CHARS to fit a provider's tokens-per-minute cap
+MAX_SEARCH_K = 8  # default; override with SEARCH_MAX_K
+
+
+def _passage_chars() -> int:
+    return int(os.environ.get("PASSAGE_MAX_CHARS", MAX_PASSAGE_CHARS))
+
+
+def _search_max_k() -> int:
+    return int(os.environ.get("SEARCH_MAX_K", MAX_SEARCH_K))
+
 _executor = concurrent.futures.ThreadPoolExecutor(max_workers=8, thread_name_prefix="tool")
 
 
@@ -62,8 +73,9 @@ def run_with_timeout(fn, timeout_s: float):
 
 def _fmt_passage(p: dict) -> str:
     text = p["text"]
-    if len(text) > MAX_PASSAGE_CHARS:
-        text = text[:MAX_PASSAGE_CHARS] + " ..."
+    limit = _passage_chars()
+    if len(text) > limit:
+        text = text[:limit] + " ..."
     score = f' score="{p["score"]:.3f}"' if p.get("score") is not None else ""
     return (
         f'<passage id="{p["passage_id"]}" doc="{p.get("doc_role", "")}" '
@@ -78,7 +90,7 @@ def _search_corpus(args: dict, ctx: ToolContext) -> tuple[str, dict]:
     doc = args.get("doc")
     if doc not in (None, "labelling", "claims"):
         raise ValueError("doc must be 'labelling', 'claims' or null")
-    k = max(1, min(8, int(args.get("k") or ctx.settings.retrieval_k)))
+    k = max(1, min(_search_max_k(), int(args.get("k") or ctx.settings.retrieval_k)))
     passages = ctx.retriever.search(query[:300], doc=doc, k=k)
     for p in passages:
         ctx.retrieved[p["passage_id"]] = p

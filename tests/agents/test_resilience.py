@@ -78,3 +78,35 @@ def test_open_breaker_is_not_retried():
     with pytest.raises(CircuitOpenError):
         call_with_policy(bad, breaker=br, retries=5, base_delay_s=0, sleep=lambda s: None)
     assert len(calls) == 1
+
+
+def test_tool_use_failed_400_is_retried_not_fatal(monkeypatch):
+    import httpx
+    from foodlabel.agents.llm import LLMClient
+    from foodlabel.common.config import get_settings
+
+    calls = {"n": 0}
+
+    def handler(request):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            return httpx.Response(400, json={"error": {"code": "tool_use_failed", "message": "Tool choice is none, but model called a tool"}})
+        return httpx.Response(200, json={"choices": [{"message": {"content": "{}"}}], "usage": {"prompt_tokens": 1, "completion_tokens": 1}})
+
+    monkeypatch.setenv("LLM_BASE_URL", "http://x/v1"); monkeypatch.setenv("LLM_MODEL", "m"); monkeypatch.setenv("LLM_BACKOFF_BASE_S", "0")
+    from foodlabel.common import config
+    config.reload_settings()
+    c = LLMClient()
+    c._http = httpx.Client(transport=httpx.MockTransport(handler))
+    assert c.chat([{"role": "user", "content": "hi"}], step="analyst").text == "{}"
+    assert calls["n"] == 2
+
+
+def test_passage_size_and_search_k_can_be_capped_for_small_token_budgets(monkeypatch):
+    from foodlabel.agents import tools
+
+    monkeypatch.setenv("PASSAGE_MAX_CHARS", "50")
+    out = tools._fmt_passage({"passage_id": "p", "text": "x" * 500, "doc_role": "claims", "clause_ref": "c"})
+    assert out.count("x") == 50 and "..." in out
+    monkeypatch.setenv("SEARCH_MAX_K", "2")
+    assert tools._search_max_k() == 2
