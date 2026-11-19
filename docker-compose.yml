@@ -28,6 +28,7 @@ services:
     volumes:
       - ./data/corpus:/app/data/corpus:ro
       - index-data:/app/data/index
+      - hf-cache:/app/.cache   # embedding model (HF_HOME=/app/.cache/huggingface) downloaded once, shared with workers
     restart: "no"
 
   llm-stub:
@@ -46,9 +47,12 @@ services:
     <<: *app-env
     environment: { SERVICE_NAME: api }
     ports: ["8000:8000"]
-    volumes: [quarantine-data:/app/data/quarantine]
+    volumes:
+      - quarantine-data:/app/data/quarantine
+      - index-data:/app/data/index:ro
     depends_on:
       redis: { condition: service_healthy }
+      indexer: { condition: service_completed_successfully }
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://localhost:8000/healthz')"]
       interval: 5s
@@ -60,7 +64,11 @@ services:
     build: { context: ., dockerfile: services/worker/Dockerfile }
     <<: *app-env
     environment: { SERVICE_NAME: worker }
-    volumes: [index-data:/app/data/index:ro]
+    volumes:
+      - index-data:/app/data/index:ro
+      # Shared model cache: without it every new or recreated replica re-downloads the embedding model on its
+      # first run and does no work for a minute or more, so --scale worker=3 added no throughput.
+      - hf-cache:/app/.cache
     depends_on:
       redis: { condition: service_healthy }
       indexer: { condition: service_completed_successfully }
@@ -146,5 +154,6 @@ services:
 volumes:
   redis-data:
   index-data:
+  hf-cache:
   quarantine-data:
   prometheus-data:
